@@ -1,0 +1,225 @@
+castxml (0.4.5-1) UNRELEASED; urgency=medium
+
+  * update
+
+ -- Debian Med Packaging Team <debian-med-packaging@lists.alioth.debian.org>  Wed, 22 Jun 2022 22:56:47 -0400
+
+castxml (0.4.5-1) unstable; urgency=medium
+
+  * New upstream version
+
+ -- Étienne Mollier <emollier@debian.org>  Tue, 05 Apr 2022 20:36:27 +0200
+
+castxml (0.4.4-1) unstable; urgency=medium
+
+  [ Gert Wollny ]
+  * d/ci: delete created files
+
+  [ Étienne Mollier ]
+  * New upstream version 0.4.4.  (Closes: #1005805)
+  * Standards-Version: 4.6.0 (routine-update)
+  * watch file standard 4 (routine-update)
+  * d/control: bump build dependency to llvm 13  (Closes: #1000931)
+  * d/copyright: bump copyright years
+  * d/copyright: remove reference to src/kwsys/* files
+  * d/control: add myself to uploaders
+  * d/control: set Debian Med as maintainer and move Steve to uploaders.
+    Thanks Steve M. Robbins for the original packaging!
+
+ -- Étienne Mollier <emollier@debian.org>  Tue, 15 Feb 2022 20:36:32 +0100
+
+castxml (0.3.6-2) unstable; urgency=medium
+
+  * d/control: update to clang-11, Closes: #974782
+  * d/control: cme fix dpkg
+
+ -- Gert Wollny <gewo@debian.org>  Sat, 05 Dec 2020 23:37:22 +0100
+
+castxml (0.3.6-1) unstable; urgency=medium
+
+  * New upstream version 0.3.6
+
+ -- Gert Wollny <gewo@debian.org>  Thu, 12 Nov 2020 12:51:55 +0100
+
+castxml (0.3.4-2) unstable; urgency=medium
+
+  * Team upload
+  * d/control: bump llvm requirements to version 10, to help address 957360
+    affecting insighttoolkit4.
+
+ -- Étienne Mollier <etienne.mollier@mailoo.org>  Tue, 04 Aug 2020 20:02:34 +0200
+
+castxml (0.3.4-1) unstable; urgency=medium
+
+  * Team upload.
+  * New upstream version
+  * Standards-Version: 4.5.0 (routine-update)
+  * debhelper-compat 13 (routine-update)
+  * Remove trailing whitespace in debian/changelog (routine-update)
+  * Remove trailing whitespace in debian/rules (routine-update)
+  * Add salsa-ci file (routine-update)
+  * Rules-Requires-Root: no (routine-update)
+
+ -- Andreas Tille <tille@debian.org>  Sun, 02 Aug 2020 19:30:30 +0200
+
+castxml (0.3.3-3) unstable; urgency=medium
+
+  * d/p/0004: Disable failing MSVC test
+
+ -- Gert Wollny <gewo@debian.org>  Sun, 26 Apr 2020 16:59:36 +0200
+
+castxml (0.3.3-2) unstable; urgency=medium
+
+  * d/p/0003: re-add libatomic patch
+
+ -- Gert Wollny <gewo@debian.org>  Sun, 26 Apr 2020 16:03:26 +0200
+
+castxml (0.3.3-1) unstable; urgency=medium
+
+  * New upstream version 0.3.3
+  * d/p: Update patches
+
+ -- Gert Wollny <gewo@debian.org>  Sun, 26 Apr 2020 14:08:18 +0200
+
+castxml (0.2.0-4) unstable; urgency=medium
+
+  [ Gert Wollny ]
+  * d/control: Use llvm-9-dev and also use libclang-9-dev to
+    fix problems with g++-9
+  * d/p/0003: Add patch to fix expected output with llvm-9
+
+ -- Gert Wollny <gewo@debian.org>  Thu, 14 Nov 2019 07:59:52 +0100
+
+castxml (0.2.0-3) unstable; urgency=medium
+
+  [ Steven Robbins ]
+  * Fix mipsel build by linking with libatomic.
+
+ -- Steve M. Robbins <smr@debian.org>  Sat, 19 Oct 2019 14:37:05 -0500
+
+castxml (0.2.0-2) unstable; urgency=medium
+
+  * upload to unstable
+
+ -- Steve M. Robbins <smr@debian.org>  Tue, 15 Oct 2019 23:34:11 -0500
+
+castxml (0.2.0-1) experimental; urgency=medium
+
+  * s/watch Add watch file
+  * New upstream version 0.2.0 Closes: #927891
+  * d/p/* Update patches
+
+ -- Gert Wollny <gewo@debian.org>  Sat, 27 Apr 2019 13:07:24 +0200
+
+castxml (0.1+git20180702-3) unstable; urgency=medium
+
+  * d/rules: Add -latomic to libs on armel, clang requires it
+
+ -- Gert Wollny <gewo@debian.org>  Sat, 01 Dec 2018 19:26:16 +0100
+
+castxml (0.1+git20180702-2) unstable; urgency=medium
+
+  * Update changelog for upload [ci skip]
+  * d/control: cme fix dpkg
+     -  add/correct VCS urls
+     - update standards version to 4.1.5 (no changes neede)
+  * d/p:0004: add patch series for llvm7 support, Closes: #912561
+  * d/p/0002: Update patch
+
+ -- Gert Wollny <gewo@debian.org>  Sat, 01 Dec 2018 16:38:12 +0100
+
+castxml (0.1+git20180702-1) unstable; urgency=medium
+
+  * New upstream version 0.1+git20180702 Closes: #902811
+  * d/control: Update standards to 4.1.4 (no changes)
+  * d/copyright: Update url to use https
+  * d/p/0002: Add description
+  * d/p/0003: Fix linking issue with llvm >= 6.0
+  * Add CI file
+  * d/p: housecleaning
+
+ -- Gert Wollny <gewo@debian.org>  Sun, 01 Jul 2018 17:58:30 +0200
+
+castxml (0.1+git20170823-2) unstable; urgency=medium
+
+  * d/control: Build-dep on llvm default version, Closes: #893405
+
+ -- Gert Wollny <gewo@debian.org>  Mon, 19 Mar 2018 19:49:37 +0100
+
+castxml (0.1+git20170823-1) unstable; urgency=medium
+
+  * New upstream version, Closes: #871573
+  * d/control: Update my e-mail address
+  * d/control: Set standards version 4.1.0, no changes needed
+  * d/control, d/rules: Switch to clang-4.0
+
+ -- Gert Wollny <gewo@debian.org>  Thu, 24 Aug 2017 10:25:34 +0000
+
+castxml (0.1+git20161215-1) experimental; urgency=medium
+
+  * New upstream version 0.1+git20161215
+  * d/control: Build against libclang-3.9
+  * d/compat: debhelper 10
+  * d/p/clang-3.8..: remove prerelease patch, now fixed upstream
+
+ -- Gert Wollny <gw.fossdev@gmail.com>  Thu, 15 Dec 2016 08:05:39 +0000
+
+castxml (0.1+git20160706-2) unstable; urgency=medium
+
+  * s/p/clang-3.8: hack around problem of pre-release of clang on armel
+
+ -- Gert Wollny <gw.fossdev@gmail.com>  Tue, 23 Aug 2016 15:14:08 +0000
+
+castxml (0.1+git20160706-1) unstable; urgency=medium
+
+  * New upstream version
+  * cme fix dpkg-control
+  * d/control: update depends to llvm-3.8-dev clang-3.8-dev
+  * d/rules: hardening += all
+
+ -- Gert Wollny <gw.fossdev@gmail.com>  Wed, 06 Jul 2016 15:15:13 +0000
+
+castxml (0.1+git20160412-1) unstable; urgency=medium
+
+  * New upstream version
+  * d/p/5c.. remove patch since it is now part of the upstream code.
+  * d/control: Update standards version to 3.9.7
+  * d/p/0002..: Add patch to not install the license file.
+     Silences lintian: extra-license-file
+
+ -- Gert Wollny <gw.fossdev@gmail.com>  Thu, 14 Apr 2016 10:44:18 +0000
+
+castxml (0.1+git20160202-1.1) unstable; urgency=medium
+
+  * debian/patches/5cfebb0f904131d1df8e36fcb9c290.patch
+    - upstream fix for issue preventing insighttoolkit4
+      from being built on i386: (Closes: #813875)
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Fri, 12 Feb 2016 19:58:28 +0100
+
+castxml (0.1+git20160202-1) unstable; urgency=medium
+
+  * New upstream Closes:  #812883
+  * Depend on llvm-3.7, removed need to work around  #785931
+  * Add Gert Wollny to uploaders
+
+ -- Gert Wollny <gw.fossdev@gmail.com>  Wed, 03 Feb 2016 11:30:08 +0000
+
+castxml (0.1+git20150807-1) unstable; urgency=medium
+
+  * New Upstream.
+
+ -- Steve M. Robbins <smr@debian.org>  Fri, 07 Aug 2015 22:54:20 -0500
+
+castxml (0.1+git20150721-1) unstable; urgency=medium
+
+  * New upstream.  The float128 tests are conditional on compiler support
+    (Closes: #793011).
+
+ -- Steve M. Robbins <smr@debian.org>  Tue, 21 Jul 2015 13:15:20 -0500
+
+castxml (0.1+git20150630-1) unstable; urgency=medium
+
+  * Initial release. (Closes: #787407)
+
+ -- Steve M. Robbins <smr@debian.org>  Sun, 28 Jun 2015 16:54:32 -0500

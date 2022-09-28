@@ -1,0 +1,7 @@
+version=4
+
+# Uncomment to find new files on Github
+#  - when using releases:
+opts=filenamemangle=s/.+\/v?(\d\S+)\.tar\.gz/castxml-$1\.tar\.gz/  \
+https://github.com/CastXML/CastXML/releases .*/v(\d[\d.-]+)\.(?:tar(?:\.gz|\.bz2)?|tgz)
+

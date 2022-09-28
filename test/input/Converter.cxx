@@ -1,0 +1,4 @@
+class start
+{
+  operator int();
+};

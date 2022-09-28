@@ -1,0 +1,20 @@
+#!/bin/sh
+# Proposed wrapper to keep gccxml syntax compatibility
+# Author: Andreas Tille <tille@debian.org>
+
+if [ $# -ne 2 ] ; then
+	echo "Usage: `basename $0` input_file.cc -fxml=output_file.xml"
+	exit 1
+fi
+if [ ! -e "$1" ] ; then
+	echo "`basename $0`: Input file $1 not found"
+	exit 1 # more clean would be to return proper POSIX exit code
+fi
+output=`echo $2 | sed 's/-fxml *= *//'`
+if [ "$2" = $output ] ; then
+	echo "Usage: `basename $0` input_file.cc -fxml=output_file.xml"
+	echo "       You need to use old gccxml syntax with -fxml= option before output file"
+	exit 1
+fi
+castxml --castxml-gccxml "$1" -o "$output"
+

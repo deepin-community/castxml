@@ -1,0 +1,14 @@
+Author: Gert Wollny <gewo@debian.org>
+Description: explicitly link against libatomic
+
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -81,7 +81,7 @@
+ else()
+   set(maybe_PRIVATE "")
+ endif()
+-target_link_libraries(castxml ${maybe_PRIVATE} ${clang_libs})
++target_link_libraries(castxml ${maybe_PRIVATE} ${clang_libs} atomic)
+ 
+ set_property(SOURCE Utils.cxx APPEND PROPERTY COMPILE_DEFINITIONS
+   "CASTXML_INSTALL_DATA_DIR=\"${CastXML_INSTALL_DATA_DIR}\"")

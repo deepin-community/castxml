@@ -1,0 +1,11 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: CastXML
+Upstream-Contact: castxml@public.kitware.com
+Source: https://github.com/CastXML/CastXML
+
+Files: *
+Copyright: 2013-2021 Kitware, Inc.
+License: Apache-2.0
+ On Debian systems, the full text of the Apache
+ License version 2.0 can be found in the file
+ /usr/share/common-licenses/Apache-2.0.

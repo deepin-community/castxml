@@ -1,0 +1,28 @@
+Source: castxml
+Maintainer: Debian Med Packaging Team <debian-med-packaging@lists.alioth.debian.org>
+Uploaders: Steve M. Robbins <smr@debian.org>,
+           Gert Wollny <gewo@debian.org>,
+           Étienne Mollier <emollier@debian.org>
+Section: devel
+Priority: optional
+Build-Depends: debhelper-compat (= 13),
+               cmake,
+               help2man,
+               libclang-13-dev,
+               llvm-13-dev,
+               libedit-dev,
+               zlib1g-dev
+Standards-Version: 4.6.0
+Vcs-Browser: https://salsa.debian.org/med-team/castxml
+Vcs-Git: https://salsa.debian.org/med-team/castxml.git
+Homepage: https://github.com/CastXML/CastXML
+Rules-Requires-Root: no
+
+Package: castxml
+Architecture: any
+Depends: ${shlibs:Depends},
+         ${misc:Depends}
+Description: C-family abstract syntax tree XML output tool
+ Parse C-family source files and optionally write a subset of the
+ Abstract Syntax Tree (AST) to a representation in XML.
+ This is the successor to gccxml.

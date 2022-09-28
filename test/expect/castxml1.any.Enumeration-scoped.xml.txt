@@ -1,0 +1,9 @@
+^<\?xml version="1.0"\?>
+<CastXML[^>]*>
+  <Enumeration id="_1" name="start" type="_2" context="_3" location="f1:1" file="f1" line="1" scoped="1" size="[0-9]+" align="[0-9]+">
+    <EnumValue name="value" init="1"/>
+  </Enumeration>
+  <FundamentalType id="_2" name="int" size="[0-9]+" align="[0-9]+"/>
+  <Namespace id="_3" name="::"/>
+  <File id="f1" name=".*/test/input/Enumeration-scoped.cxx"/>
+</CastXML>$
