@@ -1,3 +1,9 @@
+castxml (0.6.2-2deepin1) unstable; urgency=medium
+
+  * fix dependency: llvm 16
+
+ -- Chang Yang <yangchang@deepin.org>  Thu, 23 Nov 2023 11:50:46 +0800
+
 castxml (0.6.2-2) unstable; urgency=medium
 
   * d/rules: clean temporary manual page after install.
