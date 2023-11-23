@@ -17,5 +17,9 @@ override_dh_auto_configure:
 	dh_auto_configure -- $(CMAKE_FLAGS)
 
 override_dh_installman:
-	help2man -n "Create an XML representation of C++ declarations" --no-info debian/castxml/usr/bin/castxml  > castxml.1
-	dh_installman castxml.1
+	help2man debian/castxml/usr/bin/castxml \
+		--name "Create an XML representation of C++ declarations" \
+		--no-info \
+	> debian/castxml.1
+	dh_installman debian/castxml.1
+	rm -vf debian/castxml.1

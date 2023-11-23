@@ -1,8 +1,61 @@
-castxml (0.4.5-1) UNRELEASED; urgency=medium
+castxml (0.6.2-2) unstable; urgency=medium
 
-  * update
+  * d/rules: clean temporary manual page after install.
+  * d/control: bump dependency from llvm 14 to 17.
+    It has been considered to go for unversioned llvm packages, but at
+    least one of them only included versioned variants. (Closes: #1055527)
 
- -- Debian Med Packaging Team <debian-med-packaging@lists.alioth.debian.org>  Wed, 22 Jun 2022 22:56:47 -0400
+ -- Étienne Mollier <emollier@debian.org>  Wed, 08 Nov 2023 08:54:59 +0100
+
+castxml (0.6.2-1) unstable; urgency=medium
+
+  * New upstream version 0.6.2
+  * d/rules: stage manual page in debian/ directory. (Closes: #1043667)
+
+ -- Étienne Mollier <emollier@debian.org>  Sat, 14 Oct 2023 19:21:45 +0200
+
+castxml (0.6.1-1) unstable; urgency=medium
+
+  [ Steve Robbins ]
+  * Remove myself from uploaders.
+
+  [ Étienne Mollier ]
+  * New upstream version
+
+ -- Étienne Mollier <emollier@debian.org>  Thu, 20 Jul 2023 10:25:47 +0200
+
+castxml (0.5.1-1) unstable; urgency=medium
+
+  * New upstream version
+  * Standards-Version: 4.6.2 (routine-update)
+
+ -- Étienne Mollier <emollier@debian.org>  Sat, 07 Jan 2023 17:52:35 +0100
+
+castxml (0.4.8-1) unstable; urgency=medium
+
+  [ Lance Lin ]
+  * Team upload.
+  * New upstream version
+
+  [ Andreas Tille ]
+  * Remove d/.gitlab-ci.yml
+
+ -- Lance Lin <lqi254@protonmail.com>  Wed, 23 Nov 2022 21:39:59 +0700
+
+castxml (0.4.6-2) unstable; urgency=medium
+
+  * d/watch: switch to git mode; fixes breakage of releases scan on Github.
+  * d/control: append missing b-d following llvm packages reorganisation.
+
+ -- Étienne Mollier <emollier@debian.org>  Wed, 12 Oct 2022 20:57:59 +0200
+
+castxml (0.4.6-1) unstable; urgency=medium
+
+  * New upstream version
+  * Standards-Version: 4.6.1 (routine-update)
+  * d/control: bump build-depends to llvm toolchain 14. (Closes: #1017668)
+
+ -- Étienne Mollier <emollier@debian.org>  Sun, 04 Sep 2022 14:26:58 +0200
 
 castxml (0.4.5-1) unstable; urgency=medium
 

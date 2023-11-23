@@ -18,6 +18,8 @@
 #include "Options.h"
 #include "Utils.h"
 
+#include "llvm/Config/llvm-config.h"
+
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/Attr.h"
 #include "clang/AST/Decl.h"
@@ -29,6 +31,7 @@
 #include "clang/AST/Expr.h"
 #include "clang/AST/ExprCXX.h"
 #include "clang/AST/Mangle.h"
+#include "clang/AST/NestedNameSpecifier.h"
 #include "clang/AST/PrettyPrinter.h"
 #include "clang/AST/RecordLayout.h"
 #include "clang/Basic/FileManager.h"
@@ -37,8 +40,21 @@
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Lex/Preprocessor.h"
-#include "llvm/ADT/Optional.h"
 #include "llvm/Support/raw_ostream.h"
+
+#if LLVM_VERSION_MAJOR >= 16
+#  include <optional>
+namespace cx {
+template <typename T>
+using optional = std::optional<T>;
+}
+#else
+#  include <llvm/ADT/Optional.h>
+namespace cx {
+template <typename T>
+using optional = llvm::Optional<T>;
+}
+#endif
 
 #include <fstream>
 #include <iomanip>
@@ -421,6 +437,9 @@ class ASTVisitor : public ASTVisitorBase
   void PrintABIAttributes(clang::TypeInfo const& t);
   void PrintABIAttributes(clang::TypeDecl const* d);
 
+  /** Print init="..." attribute. */
+  void PrintInitAttribute(clang::Expr const* init);
+
   /** Print a basetype="..." attribute with the XML IDREF for
       the given type.  Also queues the given type for later output.  */
   void PrintBaseTypeAttribute(clang::Type const* c, bool complete);
@@ -498,7 +517,7 @@ class ASTVisitor : public ASTVisitorBase
   void OutputFunctionHelper(
     clang::FunctionDecl const* d, DumpNode const* dn, const char* tag,
     unsigned int flags,
-    llvm::Optional<std::string> const& name = llvm::Optional<std::string>());
+    cx::optional<std::string> const& name = cx::optional<std::string>());
 
   /** Output a function type element using the tag given by the caller.
       This encompasses functionality common to all the function type
@@ -526,6 +545,8 @@ class ASTVisitor : public ASTVisitorBase
 
   bool HaveFloat128Type() const;
   void PrintFloat128Type(DumpNode const* dn);
+  bool IsFloat128TypedefType(clang::QualType t) const;
+  bool IsFloat128TypedefDecl(clang::TypedefDecl const* td) const;
 
   // Decl node output methods.
   void OutputTranslationUnitDecl(clang::TranslationUnitDecl const* d,
@@ -551,6 +572,8 @@ class ASTVisitor : public ASTVisitorBase
                                DumpNode const* dn);
 
   // Type node output methods.
+  void OutputAtomicType(clang::AtomicType const* t, DumpNode const* dn);
+  void OutputAutoType(clang::AutoType const* t, DumpNode const* dn);
   void OutputBuiltinType(clang::BuiltinType const* t, DumpNode const* dn);
   void OutputConstantArrayType(clang::ConstantArrayType const* t,
                                DumpNode const* dn);
@@ -559,6 +582,8 @@ class ASTVisitor : public ASTVisitorBase
   void OutputFunctionProtoType(clang::FunctionProtoType const* t,
                                DumpNode const* dn);
   void OutputLValueReferenceType(clang::LValueReferenceType const* t,
+                                 DumpNode const* dn);
+  void OutputRValueReferenceType(clang::RValueReferenceType const* t,
                                  DumpNode const* dn);
   void OutputMemberPointerType(clang::MemberPointerType const* t,
                                DumpNode const* dn);
@@ -675,18 +700,18 @@ ASTVisitor::DumpId ASTVisitor::AddDeclDumpNode(clang::Decl const* d,
     return DumpId();
   }
 
-  // Skip C++11 declarations gccxml does not support.
-  if (this->Opts.GccXml || this->Opts.CastXml) {
-    if (clang::FunctionDecl const* fd =
-          clang::dyn_cast<clang::FunctionDecl>(d)) {
-      if (fd->isDeleted()) {
-        return DumpId();
-      }
+  // Skip declarations our output formats do not support.
+  if (clang::FunctionDecl const* fd =
+        clang::dyn_cast<clang::FunctionDecl>(d)) {
+    if (fd->isDeleted()) {
+      return DumpId();
+    }
 
-      if (fd->getLiteralIdentifier()) {
-        return DumpId();
-      }
+    if (fd->getLiteralIdentifier()) {
+      return DumpId();
+    }
 
+    if (this->Opts.GccXml) {
       if (clang::FunctionProtoType const* fpt =
             fd->getType()->getAs<clang::FunctionProtoType>()) {
         if (fpt->getReturnType()->isRValueReferenceType()) {
@@ -702,11 +727,13 @@ ASTVisitor::DumpId ASTVisitor::AddDeclDumpNode(clang::Decl const* d,
         }
       }
     }
+  }
 
-    if (clang::dyn_cast<clang::TypeAliasTemplateDecl>(d)) {
-      return DumpId();
-    }
+  if (clang::dyn_cast<clang::TypeAliasTemplateDecl>(d)) {
+    return DumpId();
+  }
 
+  if (this->Opts.GccXml) {
     if (clang::TypedefDecl const* td =
           clang::dyn_cast<clang::TypedefDecl>(d)) {
       if (td->getUnderlyingType()->isRValueReferenceType()) {
@@ -776,13 +803,19 @@ ASTVisitor::DumpId ASTVisitor::AddTypeDumpNode(DumpType dt, bool complete,
                                      complete, dq);
       }
       break;
-    case clang::Type::Elaborated:
-      if (this->Opts.GccXml || !t->isElaboratedTypeSpecifier()) {
-        return this->AddTypeDumpNode(
-          DumpType(t->getAs<clang::ElaboratedType>()->getNamedType(), c),
-          complete, dq);
+    case clang::Type::Elaborated: {
+      clang::ElaboratedType const* et = t->getAs<clang::ElaboratedType>();
+      if (this->Opts.GccXml ||
+          (et->getKeyword() == clang::ETK_None && !et->getQualifier())) {
+        // The gccxml format does not include ElaboratedType elements,
+        // so replace this one with the underlying type.  Note that this
+        // can cause duplicate PointerType and ReferenceType elements
+        // to appear in the output: each copy corresponds to a different
+        // ElaboratedType, but the gccxml format cannot express this.
+        return this->AddTypeDumpNode(DumpType(et->getNamedType(), c), complete,
+                                     dq);
       }
-      break;
+    } break;
     case clang::Type::Enum:
       return this->AddDeclDumpNodeForType(
         t->getAs<clang::EnumType>()->getDecl(), complete, dq);
@@ -833,6 +866,12 @@ ASTVisitor::DumpId ASTVisitor::AddTypeDumpNode(DumpType dt, bool complete,
       }
       return this->AddDeclDumpNodeForType(tdt->getDecl(), complete, dq);
     } break;
+#if LLVM_VERSION_MAJOR >= 14
+    case clang::Type::Using: {
+      clang::UsingType const* ut = t->getAs<clang::UsingType>();
+      return this->AddTypeDumpNode(DumpType(ut->desugar(), c), complete, dq);
+    } break;
+#endif
     default:
       break;
   }
@@ -1304,6 +1343,20 @@ void ASTVisitor::PrintABIAttributes(clang::TypeInfo const& t)
   this->OS << " align=\"" << t.Align << "\"";
 }
 
+void ASTVisitor::PrintInitAttribute(clang::Expr const* init)
+{
+  if (!init) {
+    return;
+  }
+  this->OS << " init=\"";
+  std::string s;
+  llvm::raw_string_ostream rso(s);
+  PrinterHelper ph(*this);
+  init->printPretty(rso, &ph, this->PrintingPolicy);
+  this->OS << encodeXML(rso.str());
+  this->OS << "\"";
+}
+
 void ASTVisitor::PrintBaseTypeAttribute(clang::Type const* c, bool complete)
 {
   this->OS << " basetype=\"";
@@ -1648,15 +1701,43 @@ void ASTVisitor::PrintFloat128Type(DumpNode const* dn)
   this->OS << " name=\"__float128\" size=\"128\" align=\"128\"/>\n";
 }
 
+bool ASTVisitor::IsFloat128TypedefType(clang::QualType t) const
+{
+  if (t->getTypeClass() == clang::Type::Elaborated) {
+    t = t->getAs<clang::ElaboratedType>()->getNamedType();
+  }
+  if (t->getTypeClass() == clang::Type::Typedef) {
+    clang::TypedefType const* tdt = t->getAs<clang::TypedefType>();
+    if (clang::TypedefDecl const* td =
+          clang::dyn_cast<clang::TypedefDecl>(tdt->getDecl())) {
+      return this->IsFloat128TypedefDecl(td);
+    }
+  }
+  return false;
+}
+
+bool ASTVisitor::IsFloat128TypedefDecl(clang::TypedefDecl const* td) const
+{
+  if (td->getName() == "__castxml__float128" &&
+      clang::isa<clang::TranslationUnitDecl>(td->getDeclContext())) {
+    clang::SourceLocation sl = td->getLocation();
+    if (sl.isValid()) {
+      clang::FullSourceLoc fsl = this->CTX.getFullLoc(sl).getExpansionLoc();
+      return !this->CI.getSourceManager().getFileEntryForID(fsl.getFileID());
+    }
+  }
+  return false;
+}
+
 void ASTVisitor::OutputFunctionHelper(clang::FunctionDecl const* d,
                                       DumpNode const* dn, const char* tag,
                                       unsigned int flags,
-                                      llvm::Optional<std::string> const& name)
+                                      cx::optional<std::string> const& name)
 {
   this->OS << "  <" << tag;
   this->PrintIdAttribute(dn);
   if (name) {
-    this->PrintNameAttribute(name.getValue());
+    this->PrintNameAttribute(*name);
   }
   if (flags & FH_Returns) {
     this->PrintReturnsAttribute(d->getReturnType(), dn->Complete);
@@ -1713,7 +1794,8 @@ void ASTVisitor::OutputFunctionHelper(clang::FunctionDecl const* d,
         d->getType()->getAs<clang::FunctionProtoType>()) {
     this->PrintThrowsAttribute(fpt, dn->Complete);
     if (!clang::isa<clang::CXXConstructorDecl>(d) &&
-        !clang::isa<clang::CXXDestructorDecl>(d)) {
+        !clang::isa<clang::CXXDestructorDecl>(d) &&
+        d->getLanguageLinkage() == clang::CXXLanguageLinkage) {
       this->PrintMangledAttribute(d);
     }
     this->GetFunctionTypeAttributes(fpt, attributes);
@@ -1878,7 +1960,9 @@ void ASTVisitor::OutputRecordDecl(clang::RecordDecl const* d,
   if (!d->isAnonymousStructOrUnion() && !d->isLambda()) {
     std::string s;
     llvm::raw_string_ostream rso(s);
-    d->getNameForDiagnostic(rso, this->PrintingPolicy, false);
+    if (d->getIdentifier()) {
+      d->getNameForDiagnostic(rso, this->PrintingPolicy, false);
+    }
     this->PrintNameAttribute(rso.str());
   }
   clang::AccessSpecifier access = clang::AS_none;
@@ -1958,16 +2042,9 @@ void ASTVisitor::OutputTypedefDecl(clang::TypedefDecl const* d,
 {
   // As a special case, replace our compatibility Typedef for __float128
   // with a FundamentalType so we generate the same thing gccxml did.
-  if (d->getName() == "__castxml__float128" &&
-      clang::isa<clang::TranslationUnitDecl>(d->getDeclContext())) {
-    clang::SourceLocation sl = d->getLocation();
-    if (sl.isValid()) {
-      clang::FullSourceLoc fsl = this->CTX.getFullLoc(sl).getExpansionLoc();
-      if (!this->CI.getSourceManager().getFileEntryForID(fsl.getFileID())) {
-        this->PrintFloat128Type(dn);
-        return;
-      }
-    }
+  if (this->IsFloat128TypedefDecl(d)) {
+    this->PrintFloat128Type(dn);
+    return;
   }
 
   this->OS << "  <Typedef";
@@ -2046,6 +2123,9 @@ void ASTVisitor::OutputFieldDecl(clang::FieldDecl const* d, DumpNode const* dn)
     unsigned bits = d->getBitWidthValue(this->CTX);
     this->OS << " bits=\"" << bits << "\"";
   }
+  if (this->Opts.CastXml && !this->IsFloat128TypedefType(d->getType())) {
+    this->PrintInitAttribute(d->getInClassInitializer());
+  }
   this->PrintContextAttribute(d);
   this->PrintLocationAttribute(d);
   this->PrintOffsetAttribute(this->CTX.getFieldOffset(d));
@@ -2064,14 +2144,8 @@ void ASTVisitor::OutputVarDecl(clang::VarDecl const* d, DumpNode const* dn)
   this->PrintIdAttribute(dn);
   this->PrintNameAttribute(d->getName().str());
   this->PrintTypeAttribute(d->getType(), dn->Complete);
-  if (clang::Expr const* init = d->getInit()) {
-    this->OS << " init=\"";
-    std::string s;
-    llvm::raw_string_ostream rso(s);
-    PrinterHelper ph(*this);
-    init->printPretty(rso, &ph, this->PrintingPolicy);
-    this->OS << encodeXML(rso.str());
-    this->OS << "\"";
+  if (!this->IsFloat128TypedefType(d->getType())) {
+    this->PrintInitAttribute(d->getInit());
   }
   this->PrintContextAttribute(d);
   this->PrintLocationAttribute(d);
@@ -2081,7 +2155,13 @@ void ASTVisitor::OutputVarDecl(clang::VarDecl const* d, DumpNode const* dn)
   if (d->getStorageClass() == clang::SC_Extern) {
     this->OS << " extern=\"1\"";
   }
-  this->PrintMangledAttribute(d);
+
+  bool const isTranslationUnit =
+    clang::isa<clang::TranslationUnitDecl>(d->getDeclContext());
+  if (!isTranslationUnit) {
+    // FIXME: Recognize 'extern "C" int var;' inside a namespace.
+    this->PrintMangledAttribute(d);
+  }
   this->PrintAttributesAttribute(d);
   this->PrintCommentAttribute(d, dn);
 
@@ -2204,6 +2284,31 @@ void ASTVisitor::OutputCXXDestructorDecl(clang::CXXDestructorDecl const* d,
                              this->GetContextName(d));
 }
 
+void ASTVisitor::OutputAtomicType(clang::AtomicType const* t,
+                                  DumpNode const* dn)
+{
+  if (this->Opts.GccXml) {
+    this->OutputUnimplementedType(t, dn);
+    return;
+  }
+  this->OS << "  <AtomicType";
+  this->PrintIdAttribute(dn);
+  this->PrintTypeAttribute(t->getValueType(), false);
+  this->PrintABIAttributes(this->CTX.getTypeInfo(t));
+  this->OS << "/>\n";
+}
+
+void ASTVisitor::OutputAutoType(clang::AutoType const* t, DumpNode const* dn)
+{
+  if (this->Opts.GccXml) {
+    this->OutputUnimplementedType(t, dn);
+    return;
+  }
+  this->OS << "  <AutoType";
+  this->PrintIdAttribute(dn);
+  this->OS << "/>\n";
+}
+
 void ASTVisitor::OutputBuiltinType(clang::BuiltinType const* t,
                                    DumpNode const* dn)
 {
@@ -2280,6 +2385,16 @@ void ASTVisitor::OutputLValueReferenceType(clang::LValueReferenceType const* t,
   this->OS << "/>\n";
 }
 
+void ASTVisitor::OutputRValueReferenceType(clang::RValueReferenceType const* t,
+                                           DumpNode const* dn)
+{
+  this->OS << "  <RValueReferenceType";
+  this->PrintIdAttribute(dn);
+  this->PrintTypeAttribute(t->getPointeeType(), false);
+  this->PrintABIAttributes(this->CTX.getTypeInfo(t));
+  this->OS << "/>\n";
+}
+
 void ASTVisitor::OutputMemberPointerType(clang::MemberPointerType const* t,
                                          DumpNode const* dn)
 {
@@ -2326,7 +2441,22 @@ void ASTVisitor::OutputElaboratedType(clang::ElaboratedType const* t,
 {
   this->OS << "  <ElaboratedType";
   this->PrintIdAttribute(dn);
-  this->PrintTypeAttribute(t->getNamedType(), false);
+
+  if (clang::NestedNameSpecifier* nns = t->getQualifier()) {
+    std::string s;
+    llvm::raw_string_ostream rso(s);
+    nns->print(rso, this->PrintingPolicy);
+    this->OS << " qualifier=\"" << encodeXML(rso.str()) << '"';
+  }
+
+  clang::ElaboratedTypeKeyword k = t->getKeyword();
+  if (k != clang::ETK_None) {
+    this->OS << " keyword=\""
+             << encodeXML(clang::TypeWithKeyword::getKeywordName(k).str())
+             << '"';
+  }
+
+  this->PrintTypeAttribute(t->getNamedType(), dn->Complete);
   this->OS << "/>\n";
 }
 
@@ -2341,7 +2471,7 @@ void ASTVisitor::OutputStartXMLTags()
     // Start dump with castxml-compatible format.
     /* clang-format off */
     this->OS <<
-      "<CastXML format=\"" << Opts.CastXmlEpicFormatVersion << ".2.1\">\n"
+      "<CastXML format=\"" << Opts.CastXmlEpicFormatVersion << ".4.0\">\n"
       ;
     /* clang-format on */
   } else if (this->Opts.GccXml) {

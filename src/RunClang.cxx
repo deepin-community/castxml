@@ -21,6 +21,12 @@
 
 #include "llvm/Config/llvm-config.h"
 
+#if LLVM_VERSION_MAJOR >= 17
+#  include "llvm/TargetParser/Host.h"
+#else
+#  include "llvm/Support/Host.h"
+#endif
+
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclCXX.h"
@@ -42,7 +48,6 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Option/ArgList.h"
 #include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Host.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -56,7 +61,7 @@
 #  define CASTXML_OWNS_OSTREAM
 #endif
 
-#if LLVM_VERSION_MAJOR > 9
+#if LLVM_VERSION_MAJOR >= 10
 #  define CASTXML_MAKE_UNIQUE std::make_unique
 #else
 #  define CASTXML_MAKE_UNIQUE llvm::make_unique
@@ -376,6 +381,12 @@ protected:
                     "#define __malloc__(...) __malloc__\n";
       }
 
+      // Clang's arm_neon.h checks for a feature macro not defined by GCC.
+      if (this->NeedARMv8Intrinsics(this->Opts.Predefines)) {
+        builtins += "\n"
+                    "#define __ARM_FEATURE_DIRECTED_ROUNDING 1\n";
+      }
+
     } else {
       builtins += predefines.substr(start, end - start);
     }
@@ -435,6 +446,28 @@ protected:
              pd.find("#define __NO_MATH_INLINES ") == pd.npos));
   }
 
+  bool NeedARMv8Intrinsics(std::string const& pd)
+  {
+    if (const char* d = strstr(pd.c_str(), "#define __ARM_ARCH ")) {
+      d += 19;
+      if (pd.find("#define __ARM_FEATURE_DIRECTED_ROUNDING ") != pd.npos) {
+        return false;
+      }
+      if (const char* e = strchr(d, '\n')) {
+        if (*(e - 1) == '\r') {
+          --e;
+        }
+        std::string const arm_arch_str(d, e - d);
+        errno = 0;
+        long arm_arch = std::strtol(arm_arch_str.c_str(), nullptr, 10);
+        if (errno == 0 && arm_arch >= 8) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   bool BeginSourceFileAction(clang::CompilerInstance& CI
 #if LLVM_VERSION_MAJOR < 5
                              ,
@@ -443,10 +476,6 @@ protected:
                              ) override
   {
     CI.getPreprocessor().setPredefines(this->UpdatePredefines(CI));
-
-    // Tell Clang not to tear down the parser at EOF.
-    CI.getPreprocessor().enableIncrementalProcessing();
-
     return true;
   }
 };
@@ -482,6 +511,28 @@ class CastXMLSyntaxOnlyAction
     } else {
       return nullptr;
     }
+  }
+
+protected:
+  bool BeginSourceFileAction(clang::CompilerInstance& CI
+#if LLVM_VERSION_MAJOR < 5
+                             ,
+                             llvm::StringRef Filename
+#endif
+                             ) override
+  {
+    this->CastXMLPredefines::BeginSourceFileAction(CI
+#if LLVM_VERSION_MAJOR < 5
+                                                   ,
+                                                   Filename
+#endif
+    );
+
+    // Tell Clang not to tear down the parser at EOF.
+    // We need it in ASTConsumer::HandleTranslationUnit.
+    CI.getPreprocessor().enableIncrementalProcessing();
+
+    return true;
   }
 
 public:
@@ -574,7 +625,12 @@ runClangCreateDiagnostics(const char* const* argBeg, const char* const* argEnd)
 #if LLVM_VERSION_MAJOR > 3 ||                                                 \
   LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR >= 7
   llvm::opt::InputArgList args(opts->ParseArgs(
-    llvm::makeArrayRef(argBeg, argEnd), missingArgIndex, missingArgCount));
+#  if LLVM_VERSION_MAJOR >= 16
+    llvm::ArrayRef(argBeg, argEnd),
+#  else
+    llvm::makeArrayRef(argBeg, argEnd),
+#  endif
+    missingArgIndex, missingArgCount));
   clang::ParseDiagnosticArgs(*diagOpts, args);
 #else
   std::unique_ptr<llvm::opt::InputArgList> args(
@@ -647,7 +703,9 @@ static int runClangImpl(const char* const* argBeg, const char* const* argEnd,
       const char* const* cmdArgEnd = cmdArgBeg + cmd->getArguments().size();
       if (clang::CompilerInvocation::CreateFromArgs(
             CI->getInvocation(),
-#if LLVM_VERSION_MAJOR > 9
+#if LLVM_VERSION_MAJOR >= 16
+            llvm::ArrayRef(cmdArgBeg, cmdArgEnd),
+#elif LLVM_VERSION_MAJOR >= 10
             llvm::makeArrayRef(cmdArgBeg, cmdArgEnd),
 #else
             cmdArgBeg, cmdArgEnd,
@@ -746,7 +804,13 @@ int runClang(const char* const* argBeg, const char* const* argEnd,
                   msvc_lang = std::strtol(msvc_lang_str.c_str(), nullptr, 10);
                 }
               }
-              if (msvc_lang >= 201703L) {
+              if (msvc_lang >= 202002L) {
+#if LLVM_VERSION_MAJOR >= 11
+                args.push_back("-std=c++20");
+#else
+                args.push_back("-std=c++17");
+#endif
+              } else if (msvc_lang >= 201703L) {
                 args.push_back("-std=c++17");
               } else {
                 args.push_back("-std=c++14");
@@ -787,7 +851,15 @@ int runClang(const char* const* argBeg, const char* const* argEnd,
             std_date = 0;
           }
           std_flag += "++";
-          if (std_date >= 201703L) {
+          if (std_date >= 202002L) {
+#if LLVM_VERSION_MAJOR >= 11
+            std_flag += "20";
+#elif LLVM_VERSION_MAJOR >= 5
+            std_flag += "17";
+#else
+            std_flag += "1z";
+#endif
+          } else if (std_date >= 201703L) {
 #if LLVM_VERSION_MAJOR >= 5
             std_flag += "17";
 #else
