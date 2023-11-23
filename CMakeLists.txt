@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #=============================================================================
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.5)
 project(CastXML)
 
 include(src/Version.cmake)
@@ -127,10 +127,17 @@ if(CYGWIN OR MINGW)
 else()
   set(CMAKE_CXX_EXTENSIONS OFF)
 endif()
-if(LLVM_VERSION_MAJOR GREATER 9)
+if(LLVM_VERSION_MAJOR GREATER 15)
+  set(CMAKE_CXX_STANDARD 17)
+elseif(LLVM_VERSION_MAJOR GREATER 9)
   set(CMAKE_CXX_STANDARD 14)
 else()
   set(CMAKE_CXX_STANDARD 11)
+endif()
+
+# Reserve ~10MB stack size on Windows, as LLVM upstream does.
+if(MSVC)
+  string(APPEND CMAKE_EXE_LINKER_FLAGS " -STACK:10000000")
 endif()
 
 add_definitions(${LLVM_DEFINITIONS})
@@ -160,6 +167,9 @@ if(NOT CLANG_RESOURCE_DIR)
   foreach(d ${dirs})
     if(IS_DIRECTORY "${d}/clang/${v}/include")
       set(CLANG_RESOURCE_DIR ${d}/clang/${v})
+      break()
+    elseif(IS_DIRECTORY "${d}/clang/${LLVM_VERSION_MAJOR}/include")
+      set(CLANG_RESOURCE_DIR ${d}/clang/${LLVM_VERSION_MAJOR})
       break()
     endif()
     set(tried "${tried}\n  ${d}/clang/${v}")

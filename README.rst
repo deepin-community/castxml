@@ -27,13 +27,6 @@ See the `<LICENSE>`__ and `<NOTICE>`__ files for details.
 
 .. _`Apache License, Version 2.0`: https://www.apache.org/licenses/LICENSE-2.0
 
-Community
-=========
-
-Subscribe and post to the `CastXML Mailing List`_ for discussion of CastXML.
-
-.. _`CastXML Mailing List`: https://public.kitware.com/mailman/listinfo/castxml
-
 Superbuild
 ==========
 
@@ -54,7 +47,11 @@ To build CastXML from source, first obtain the prerequisites:
 * `LLVM/Clang`_ compiler SDK install tree built using the C++ compiler.
   This version of CastXML has been tested with LLVM/Clang
 
-  - Git ``main`` as of 2021-08-25 (``24201b6437``)
+  - Git ``main`` as of 2023-09-19 (``00ecef906b``)
+  - Release ``17.0``
+  - Release ``16.0``
+  - Release ``15.0``
+  - Release ``14.0``
   - Release ``13.0``
   - Release ``12.0``
   - Release ``11.0``

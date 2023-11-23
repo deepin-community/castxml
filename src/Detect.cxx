@@ -18,12 +18,20 @@
 #include "Options.h"
 #include "Utils.h"
 
+#include "llvm/Config/llvm-config.h"
+
+#if LLVM_VERSION_MAJOR >= 17
+#  include "llvm/TargetParser/Host.h"
+#  include "llvm/TargetParser/Triple.h"
+#else
+#  include "llvm/ADT/Triple.h"
+#  include "llvm/Support/Host.h"
+#endif
+
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/Triple.h"
 #include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Host.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -95,6 +103,9 @@ static void setTriple(Options& opts)
   } else if (pd.find("#define __aarch64__ 1") != pd.npos ||
              pd.find("#define _M_ARM64 ") != pd.npos) {
     triple.setArchName("aarch64");
+  } else if (pd.find("#define __arm__ 1") != pd.npos ||
+             pd.find("#define _M_ARM ") != pd.npos) {
+    triple.setArchName("arm");
   }
   if (pd.find("#define _WIN32 1") != pd.npos) {
     triple.setVendorName("pc");

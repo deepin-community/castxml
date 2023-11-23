@@ -1,19 +1,19 @@
 # CastXML version number components.
 set(CastXML_VERSION_MAJOR 0)
-set(CastXML_VERSION_MINOR 4)
-set(CastXML_VERSION_PATCH 5)
-set(CastXML_VERSION_RC 0)
+set(CastXML_VERSION_MINOR 6)
+set(CastXML_VERSION_PATCH 2)
+#set(CastXML_VERSION_RC 0)
 set(CastXML_VERSION_IS_DIRTY 0)
 
 # Start with the full version number used in tags.  It has no dev info.
 set(CastXML_VERSION
   "${CastXML_VERSION_MAJOR}.${CastXML_VERSION_MINOR}.${CastXML_VERSION_PATCH}")
-if(CastXML_VERSION_RC)
+if(DEFINED CastXML_VERSION_RC)
   set(CastXML_VERSION "${CastXML_VERSION}-rc${CastXML_VERSION_RC}")
 endif()
 
 # If this source was exported by 'git archive', use its commit info.
-set(git_info "7ef4b1e CastXML 0.4.5")
+set(git_info "841a6b1 CastXML 0.6.2")
 
 # Otherwise, try to identify the current development source version.
 if(NOT git_info MATCHES "^([0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]?[0-9a-f]?)[0-9a-f]* "
